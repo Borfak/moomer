@@ -5,6 +5,8 @@ Screen zoomer for macOS, inspired by [Boomer](https://github.com/tsoding/boomer)
 Freezes the screen in a fullscreen overlay and lets you zoom and pan around it -
 handy for presentations, screencasts, and inspecting detail.
 
+![demo](demo.gif)
+
 ## Quick Start
 
 ```console
