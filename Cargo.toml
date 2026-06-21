@@ -1,0 +1,25 @@
+[package]
+name = "moomer"
+version = "0.1.0"
+edition = "2024"
+description = "A macOS freeze-frame screen zoomer built with winit + wgpu/Metal"
+license = "MIT"
+
+[dependencies]
+winit = "0.30"
+wgpu = "22"
+pollster = "0.3"
+xcap = "0.9"
+image = "0.25"
+bytemuck = { version = "1", features = ["derive"] }
+raw-window-handle = "0.6"
+
+# objc2 pinned to 0.2 to share winit 0.30's bindings.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.5"
+objc2-foundation = "0.2"
+objc2-app-kit = { version = "0.2", features = ["NSWindow", "NSView", "NSResponder"] }
+
+[profile.release]
+opt-level = 3
+lto = true
