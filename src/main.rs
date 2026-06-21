@@ -97,6 +97,21 @@ impl View {
         self.center[1] += (self.t_center[1] - self.center[1]) * k;
         self.radius += (self.t_radius - self.radius) * k;
     }
+
+    /// True once the current values have reached their targets, snapping them so
+    /// the redraw loop can stop and the app can idle until the next input.
+    fn settled(&mut self) -> bool {
+        let done = (self.scale - self.t_scale).abs() < 1e-4
+            && (self.center[0] - self.t_center[0]).abs() < 1e-5
+            && (self.center[1] - self.t_center[1]).abs() < 1e-5
+            && (self.radius - self.t_radius).abs() < 0.25;
+        if done {
+            self.scale = self.t_scale;
+            self.center = self.t_center;
+            self.radius = self.t_radius;
+        }
+        done
+    }
 }
 
 struct App {
@@ -121,6 +136,12 @@ impl App {
             dragging: false,
             last_frame: None,
             revealed: false,
+        }
+    }
+
+    fn request_redraw(&self) {
+        if let Some(w) = &self.window {
+            w.request_redraw();
         }
     }
 }
@@ -156,6 +177,7 @@ impl ApplicationHandler for App {
         self.window = Some(window);
         self.renderer = Some(renderer);
         self.last_frame = Some(Instant::now());
+        self.request_redraw();
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -168,8 +190,14 @@ impl ApplicationHandler for App {
                 match event.logical_key {
                     Key::Named(NamedKey::Escape) => event_loop.exit(),
                     Key::Character(ref s) if s == "q" => event_loop.exit(),
-                    Key::Character(ref s) if s == "f" => self.view.flashlight = !self.view.flashlight,
-                    Key::Character(ref s) if s == "0" => self.view.reset(),
+                    Key::Character(ref s) if s == "f" => {
+                        self.view.flashlight = !self.view.flashlight;
+                        self.request_redraw();
+                    }
+                    Key::Character(ref s) if s == "0" => {
+                        self.view.reset();
+                        self.request_redraw();
+                    }
                     _ => {}
                 }
             }
@@ -185,6 +213,11 @@ impl ApplicationHandler for App {
                     self.view.on_drag(delta, res);
                 }
                 self.cursor = new;
+                // The cursor only changes the image while dragging or when the
+                // flashlight spotlight is tracking it.
+                if self.dragging || self.view.flashlight {
+                    self.request_redraw();
+                }
             }
 
             WindowEvent::MouseWheel { delta, .. } => {
@@ -193,12 +226,14 @@ impl ApplicationHandler for App {
                     MouseScrollDelta::PixelDelta(p) => p.y as f32 / 50.0,
                 };
                 self.view.on_scroll(dy, self.cursor, res);
+                self.request_redraw();
             }
 
             WindowEvent::Resized(size) => {
                 if let Some(r) = &mut self.renderer {
                     r.resize(size.width, size.height);
                 }
+                self.request_redraw();
             }
 
             WindowEvent::RedrawRequested => {
@@ -247,8 +282,10 @@ impl ApplicationHandler for App {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        if let Some(w) = &self.window {
-            w.request_redraw();
+        // Keep redrawing only while still animating toward the target; once
+        // settled, idle until the next input instead of spinning the GPU.
+        if !self.view.settled() {
+            self.request_redraw();
         }
     }
 }
@@ -267,7 +304,8 @@ fn main() {
     };
 
     let event_loop = EventLoop::new().expect("event loop");
-    event_loop.set_control_flow(ControlFlow::Poll);
+    // Idle between events; the app drives its own redraws while animating.
+    event_loop.set_control_flow(ControlFlow::Wait);
 
     let mut app = App::new(shot);
     event_loop.run_app(&mut app).expect("run app");

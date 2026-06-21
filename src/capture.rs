@@ -11,12 +11,15 @@ pub struct Screenshot {
 impl Screenshot {
     /// Capture the primary monitor. Requires Screen Recording permission on macOS.
     pub fn capture_primary() -> Result<Self, Box<dyn std::error::Error>> {
-        let monitors = Monitor::all()?;
-        let monitor = monitors
-            .into_iter()
-            .find(|m| m.is_primary().unwrap_or(false))
-            .or_else(|| Monitor::all().ok().and_then(|mut v| v.drain(..).next()))
-            .ok_or("no monitor found")?;
+        let mut monitors = Monitor::all()?;
+        if monitors.is_empty() {
+            return Err("no monitor found".into());
+        }
+        let idx = monitors
+            .iter()
+            .position(|m| m.is_primary().unwrap_or(false))
+            .unwrap_or(0);
+        let monitor = monitors.swap_remove(idx);
 
         let rgba = monitor.capture_image()?;
         let (width, height) = (rgba.width(), rgba.height());
