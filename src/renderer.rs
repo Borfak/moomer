@@ -254,6 +254,101 @@ impl Renderer {
         self.queue.write_buffer(&self.uniform_buf, 0, bytemuck::bytes_of(&u));
     }
 
+    /// Render the current view to an offscreen target and read it back as RGBA8
+    /// (sRGB) bytes - used to copy the zoomed frame to the clipboard.
+    pub fn capture_frame(&self) -> (u32, u32, Vec<u8>) {
+        let (w, h) = (self.config.width, self.config.height);
+
+        let target = self.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("capture-target"),
+            size: wgpu::Extent3d { width: w, height: h, depth_or_array_layers: 1 },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: self.config.format,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+        let view = target.create_view(&wgpu::TextureViewDescriptor::default());
+
+        // Rows in the copy buffer must be aligned to 256 bytes.
+        let unpadded = w * 4;
+        let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+        let padded = unpadded.div_ceil(align) * align;
+        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("capture-readback"),
+            size: (padded * h) as u64,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("capture-enc") });
+        {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("capture-pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            pass.set_pipeline(&self.pipeline);
+            pass.set_bind_group(0, &self.bind_group, &[]);
+            pass.draw(0..3, 0..1);
+        }
+        encoder.copy_texture_to_buffer(
+            wgpu::ImageCopyTexture {
+                texture: &target,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::ImageCopyBuffer {
+                buffer: &buffer,
+                layout: wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: Some(padded),
+                    rows_per_image: Some(h),
+                },
+            },
+            wgpu::Extent3d { width: w, height: h, depth_or_array_layers: 1 },
+        );
+        self.queue.submit(Some(encoder.finish()));
+
+        buffer.slice(..).map_async(wgpu::MapMode::Read, |_| {});
+        self.device.poll(wgpu::Maintain::Wait);
+
+        let data = buffer.slice(..).get_mapped_range();
+        let bgra = matches!(
+            self.config.format,
+            wgpu::TextureFormat::Bgra8UnormSrgb | wgpu::TextureFormat::Bgra8Unorm
+        );
+        let mut out = Vec::with_capacity((w * h * 4) as usize);
+        for row in 0..h as usize {
+            let start = row * padded as usize;
+            let line = &data[start..start + unpadded as usize];
+            if bgra {
+                for px in line.chunks_exact(4) {
+                    out.extend_from_slice(&[px[2], px[1], px[0], px[3]]);
+                }
+            } else {
+                out.extend_from_slice(line);
+            }
+        }
+        drop(data);
+        buffer.unmap();
+
+        (w, h, out)
+    }
+
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let frame = self.surface.get_current_texture()?;
         let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());

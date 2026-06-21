@@ -21,10 +21,12 @@ Security → Screen Recording* → enable your terminal → restart it → run a
 | Control | Description |
 | --- | --- |
 | Scroll / <kbd>=</kbd> <kbd>-</kbd> | Zoom in/out toward the cursor |
-| Left-drag | Pan |
+| Left-drag | Pan (flick to coast) |
+| Arrows / <kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd> | Pan |
 | <kbd>f</kbd> | Toggle flashlight |
 | <kbd>Ctrl</kbd> + Scroll | Resize flashlight |
 | <kbd>m</kbd> | Mirror image |
+| <kbd>c</kbd> | Copy current view to clipboard |
 | <kbd>0</kbd> | Reset |
 | <kbd>Esc</kbd> / <kbd>q</kbd> | Quit |
 
