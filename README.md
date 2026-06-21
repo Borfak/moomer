@@ -1,4 +1,4 @@
-# moomer
+# Moomer
 
 Screen zoomer for macOS, inspired by [Boomer](https://github.com/tsoding/boomer).
 
@@ -26,7 +26,7 @@ Security → Screen Recording* → enable your terminal → restart it → run a
 
 ## Hotkey
 
-moomer is launch-and-go, like Boomer. To trigger it with a keypress, bind the
+Moomer is launch-and-go, like Boomer. To trigger it with a keypress, bind the
 built binary (`target/release/moomer`) to a shortcut with
 [skhd](https://github.com/koekeishiya/skhd) or an Automator Quick Action.
 
