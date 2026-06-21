@@ -15,7 +15,8 @@ struct Uniforms {
     radius: f32,
     flashlight: f32,
     shadow: f32,
-    _pad: [f32; 2],
+    mirror: f32,
+    _pad: f32,
 }
 
 pub struct Frame {
@@ -24,6 +25,7 @@ pub struct Frame {
     pub scale: f32,
     pub radius: f32,
     pub flashlight: bool,
+    pub mirror: bool,
     pub shadow: f32,
 }
 
@@ -136,7 +138,8 @@ impl Renderer {
             radius: 200.0,
             flashlight: 0.0,
             shadow: 0.8,
-            _pad: [0.0, 0.0],
+            mirror: 0.0,
+            _pad: 0.0,
         };
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("uniforms"),
@@ -245,7 +248,8 @@ impl Renderer {
             radius: f.radius,
             flashlight: if f.flashlight { 1.0 } else { 0.0 },
             shadow: f.shadow,
-            _pad: [0.0, 0.0],
+            mirror: if f.mirror { 1.0 } else { 0.0 },
+            _pad: 0.0,
         };
         self.queue.write_buffer(&self.uniform_buf, 0, bytemuck::bytes_of(&u));
     }

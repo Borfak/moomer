@@ -20,9 +20,11 @@ Security → Screen Recording* → enable your terminal → restart it → run a
 
 | Control | Description |
 | --- | --- |
-| Scroll | Zoom in/out toward the cursor |
+| Scroll / <kbd>=</kbd> <kbd>-</kbd> | Zoom in/out toward the cursor |
 | Left-drag | Pan |
-| <kbd>f</kbd> | Toggle flashlight (scroll resizes it) |
+| <kbd>f</kbd> | Toggle flashlight |
+| <kbd>Ctrl</kbd> + Scroll | Resize flashlight |
+| <kbd>m</kbd> | Mirror image |
 | <kbd>0</kbd> | Reset |
 | <kbd>Esc</kbd> / <kbd>q</kbd> | Quit |
 

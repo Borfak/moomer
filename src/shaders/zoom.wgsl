@@ -10,6 +10,7 @@ struct Uniforms {
     radius     : f32,        // flashlight radius, px
     flashlight : f32,        // 0 = off, 1 = on
     shadow     : f32,        // darkness outside the spotlight (0..1)
+    mirror     : f32,        // 0 = normal, 1 = horizontally flipped
 };
 
 @group(0) @binding(0) var          screen_tex : texture_2d<f32>;
@@ -34,7 +35,10 @@ fn vs_main(@builtin(vertex_index) vid : u32) -> VsOut {
 fn fs_main(in : VsOut) -> @location(0) vec4<f32> {
     let frag = in.pos.xy;
 
-    let screen_uv = frag / u.resolution;
+    var screen_uv = frag / u.resolution;
+    if (u.mirror > 0.5) {
+        screen_uv.x = 1.0 - screen_uv.x;
+    }
     let img_uv = u.center + (screen_uv - vec2<f32>(0.5)) / u.scale;
     var color = textureSample(screen_tex, screen_smp, img_uv);
 

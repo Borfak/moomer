@@ -16,8 +16,9 @@ use renderer::{Frame, Renderer};
 
 const MIN_SCALE: f32 = 0.2;
 const MAX_SCALE: f32 = 20.0;
-const ZOOM_SENSITIVITY: f32 = 0.1;
-const SMOOTH_SPEED: f32 = 16.0;
+const ZOOM_SENSITIVITY: f32 = 0.08;
+const KEY_ZOOM_STEP: f32 = 3.0; // scroll-units per =/- keypress
+const SMOOTH_SPEED: f32 = 10.0;
 const SHADOW: f32 = 0.85;
 
 /// 2D camera and flashlight state, smoothly interpolated toward target values.
@@ -29,6 +30,7 @@ struct View {
     radius: f32,
     t_radius: f32,
     flashlight: bool,
+    mirror: bool,
 }
 
 impl View {
@@ -41,6 +43,7 @@ impl View {
             radius: 220.0,
             t_radius: 220.0,
             flashlight: false,
+            mirror: false,
         }
     }
 
@@ -58,14 +61,16 @@ impl View {
         self.t_center[1] = Self::clamp_axis(self.t_center[1], self.t_scale);
     }
 
-    fn on_scroll(&mut self, dy: f32, cursor: [f32; 2], res: [f32; 2]) {
+    /// Zoom toward the cursor, keeping the image point under it fixed.
+    fn zoom(&mut self, dy: f32, cursor: [f32; 2], res: [f32; 2]) {
         let factor = (dy * ZOOM_SENSITIVITY).exp();
-        if self.flashlight {
-            self.t_radius = (self.t_radius * factor).clamp(40.0, 4000.0);
-            return;
-        }
-        // Keep the image point under the cursor fixed across the zoom.
-        let cur_n = [cursor[0] / res[0], cursor[1] / res[1]];
+        // The shader flips screen X when mirrored, so anchor on the flipped X.
+        let cur_x = if self.mirror {
+            1.0 - cursor[0] / res[0]
+        } else {
+            cursor[0] / res[0]
+        };
+        let cur_n = [cur_x, cursor[1] / res[1]];
         let anchor = [
             self.t_center[0] + (cur_n[0] - 0.5) / self.t_scale,
             self.t_center[1] + (cur_n[1] - 0.5) / self.t_scale,
@@ -79,8 +84,16 @@ impl View {
         self.clamp_center();
     }
 
+    /// Grow/shrink the flashlight spotlight (Ctrl+scroll).
+    fn adjust_radius(&mut self, dy: f32) {
+        let factor = (dy * ZOOM_SENSITIVITY).exp();
+        self.t_radius = (self.t_radius * factor).clamp(40.0, 4000.0);
+    }
+
     fn on_drag(&mut self, delta: [f32; 2], res: [f32; 2]) {
-        self.t_center[0] -= delta[0] / (res[0] * self.t_scale);
+        // Mirroring flips screen X, so drag X must flip too to keep "grab" feel.
+        let dx = if self.mirror { -delta[0] } else { delta[0] };
+        self.t_center[0] -= dx / (res[0] * self.t_scale);
         self.t_center[1] -= delta[1] / (res[1] * self.t_scale);
         self.clamp_center();
     }
@@ -121,6 +134,7 @@ struct App {
     view: View,
     cursor: [f32; 2],
     dragging: bool,
+    ctrl: bool,
     last_frame: Option<Instant>,
     revealed: bool,
 }
@@ -134,6 +148,7 @@ impl App {
             view: View::new(),
             cursor: [0.0, 0.0],
             dragging: false,
+            ctrl: false,
             last_frame: None,
             revealed: false,
         }
@@ -194,12 +209,28 @@ impl ApplicationHandler for App {
                         self.view.flashlight = !self.view.flashlight;
                         self.request_redraw();
                     }
+                    Key::Character(ref s) if s == "m" => {
+                        self.view.mirror = !self.view.mirror;
+                        self.request_redraw();
+                    }
                     Key::Character(ref s) if s == "0" => {
                         self.view.reset();
                         self.request_redraw();
                     }
+                    Key::Character(ref s) if s == "=" || s == "+" => {
+                        self.view.zoom(KEY_ZOOM_STEP, self.cursor, res);
+                        self.request_redraw();
+                    }
+                    Key::Character(ref s) if s == "-" => {
+                        self.view.zoom(-KEY_ZOOM_STEP, self.cursor, res);
+                        self.request_redraw();
+                    }
                     _ => {}
                 }
+            }
+
+            WindowEvent::ModifiersChanged(mods) => {
+                self.ctrl = mods.state().control_key();
             }
 
             WindowEvent::MouseInput { state, button: MouseButton::Left, .. } => {
@@ -225,7 +256,12 @@ impl ApplicationHandler for App {
                     MouseScrollDelta::LineDelta(_, y) => y,
                     MouseScrollDelta::PixelDelta(p) => p.y as f32 / 50.0,
                 };
-                self.view.on_scroll(dy, self.cursor, res);
+                // Ctrl+scroll resizes the flashlight; plain scroll always zooms.
+                if self.ctrl {
+                    self.view.adjust_radius(dy);
+                } else {
+                    self.view.zoom(dy, self.cursor, res);
+                }
                 self.request_redraw();
             }
 
@@ -253,6 +289,7 @@ impl ApplicationHandler for App {
                         scale: self.view.scale,
                         radius: self.view.radius,
                         flashlight: self.view.flashlight,
+                        mirror: self.view.mirror,
                         shadow: SHADOW,
                     });
                     match r.render() {
