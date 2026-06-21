@@ -14,7 +14,7 @@ use winit::window::{Window, WindowId};
 use capture::Screenshot;
 use renderer::{Frame, Renderer};
 
-const MIN_SCALE: f32 = 1.0;
+const MIN_SCALE: f32 = 0.2;
 const MAX_SCALE: f32 = 20.0;
 const ZOOM_SENSITIVITY: f32 = 0.1;
 const SMOOTH_SPEED: f32 = 16.0;

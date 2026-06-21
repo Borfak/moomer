@@ -38,6 +38,12 @@ fn fs_main(in : VsOut) -> @location(0) vec4<f32> {
     let img_uv = u.center + (screen_uv - vec2<f32>(0.5)) / u.scale;
     var color = textureSample(screen_tex, screen_smp, img_uv);
 
+    // When zoomed out (scale < 1) the view extends past the screenshot; paint
+    // those margins black instead of smearing the clamped edge pixels.
+    if (img_uv.x < 0.0 || img_uv.x > 1.0 || img_uv.y < 0.0 || img_uv.y > 1.0) {
+        color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+    }
+
     if (u.flashlight > 0.5) {
         let dist = distance(frag, u.cursor);
         let spot = 1.0 - smoothstep(u.radius - 12.0, u.radius, dist);
