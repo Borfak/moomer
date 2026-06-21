@@ -23,9 +23,21 @@ Run `moomer` to freeze the screen, then zoom/pan around it (see Controls); press
 <kbd>Esc</kbd> to quit. Needs **Screen Recording** permission the first time:
 *System Settings → Privacy & Security → Screen Recording*.
 
-To launch it with a global hotkey, bind `moomer` to a shortcut with
-[skhd](https://github.com/koekeishiya/skhd) (e.g. `cmd + shift - z : moomer`) or
-an Automator Quick Action.
+### Global hotkey
+
+Bind a hotkey to launch moomer from anywhere using
+[skhd](https://github.com/koekeishiya/skhd):
+
+```sh
+# Cmd+Shift+Z launches moomer — change "cmd + shift - z" to any hotkey you like
+brew install koekeishiya/formulae/skhd
+mkdir -p ~/.config/skhd
+echo 'cmd + shift - z : moomer' >> ~/.config/skhd/skhdrc
+skhd --start-service
+```
+
+Grant skhd **Accessibility** permission when prompted
+(*System Settings → Privacy & Security → Accessibility*).
 
 ## Controls
 
