@@ -7,14 +7,25 @@ handy for presentations, screencasts, and inspecting detail.
 
 ![demo](demo.gif)
 
-## Quick Start
+## Install
 
-```console
-$ cargo run --release
+```sh
+brew tap Borfak/moomer
+brew trust borfak/moomer
+brew install moomer
 ```
 
-Needs **Screen Recording** permission the first time: *System Settings → Privacy &
-Security → Screen Recording* → enable your terminal → restart it → run again.
+Or build from source: `cargo build --release`.
+
+## Usage
+
+Run `moomer` to freeze the screen, then zoom/pan around it (see Controls); press
+<kbd>Esc</kbd> to quit. Needs **Screen Recording** permission the first time:
+*System Settings → Privacy & Security → Screen Recording*.
+
+To launch it with a global hotkey, bind `moomer` to a shortcut with
+[skhd](https://github.com/koekeishiya/skhd) (e.g. `cmd + shift - z : moomer`) or
+an Automator Quick Action.
 
 ## Controls
 
@@ -29,12 +40,6 @@ Security → Screen Recording* → enable your terminal → restart it → run a
 | <kbd>c</kbd> | Copy current view to clipboard |
 | <kbd>0</kbd> | Reset |
 | <kbd>Esc</kbd> / <kbd>q</kbd> | Quit |
-
-## Hotkey
-
-Moomer is launch-and-go, like Boomer. To trigger it with a keypress, bind the
-built binary (`target/release/moomer`) to a shortcut with
-[skhd](https://github.com/koekeishiya/skhd) or an Automator Quick Action.
 
 ## Tuning
 
