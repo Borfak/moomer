@@ -1,7 +1,7 @@
 import AppKit
 import CoreMedia
 import CoreVideo
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 import MoomerCore
 
 extension NSScreen {
