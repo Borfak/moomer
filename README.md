@@ -38,9 +38,41 @@ rid of it are apparently separate features.
 
 Flashlight, mirroring, and copying the current view survived the rewrite.
 
-## Build and run
+## Install
 
-Requires **macOS 14+** and a **Swift 6 toolchain** (Xcode 16+).
+Requires **macOS 14+**.
+
+### Homebrew
+
+The [Homebrew tap](https://github.com/Borfak/homebrew-moomer) now ships the Swift
+version. It builds from source and requires **Xcode 16+**.
+
+```sh
+brew install Borfak/moomer/moomer
+moomer --version
+moomer --live --fps auto
+```
+
+Upgrading from the Rust version:
+
+```sh
+brew update
+brew upgrade Borfak/moomer/moomer
+```
+
+The formula installs the full `Moomer.app`, including its shader resources,
+and a `moomer` command. To launch the Homebrew app through macOS:
+
+```sh
+open "$(brew --prefix moomer)/Moomer.app" --args --live --fps auto
+```
+
+Homebrew updates its own copy. A manually installed `/Applications/Moomer.app`
+is separate, so update your hotkey if it still points there.
+
+### Build from source
+
+Requires a **Swift 6 toolchain** (Xcode 16+).
 
 ```sh
 git clone https://github.com/Borfak/moomer.git
@@ -69,10 +101,6 @@ Or run it from the terminal:
 swift run -c release moomer
 swift run -c release moomer --live --fps auto
 ```
-
-**Homebrew:** the tap currently ships the Rust version, `v0.1.0`. It needs an
-update for v2. Until then, use the build instructions above. A package manager
-cannot install code that has only been released emotionally.
 
 ## What happens when you run it
 
@@ -107,11 +135,22 @@ Your hotkey launcher stays around to launch it again.
 
 ## Cmd + Shift + Z
 
-With [skhd](https://github.com/koekeishiya/skhd) installed, add this to
-`~/.config/skhd/skhdrc` after copying the app to `/Applications`:
+With [skhd](https://github.com/koekeishiya/skhd) installed, replace your existing
+Cmd+Shift+Z binding in `~/.config/skhd/skhdrc` with the one for your installation.
+
+**Homebrew, standard Apple Silicon installation:**
 
 ```sh
-cmd + shift - z : /usr/bin/open -a /Applications/Moomer.app --args --live --fps auto
+cmd + shift - z : /usr/bin/open /opt/homebrew/opt/moomer/Moomer.app --args --live --fps auto
+```
+
+On Intel, use `/usr/local/opt/moomer/Moomer.app`. For a custom Homebrew prefix,
+get the app directory with `brew --prefix moomer`.
+
+**Built from source and copied to `/Applications`:**
+
+```sh
+cmd + shift - z : /usr/bin/open /Applications/Moomer.app --args --live --fps auto
 ```
 
 Start skhd with `skhd --start-service`, or reload its configuration if it is
