@@ -1,0 +1,16 @@
+name: Swift
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build
+      - name: Test camera, displays, CLI, and Metal rendering
+        run: swift test
+      - name: Package application
+        run: ./scripts/build-app.sh

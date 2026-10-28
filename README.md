@@ -1,63 +1,149 @@
 # Moomer
 
-Screen zoomer for macOS, inspired by [Boomer](https://github.com/tsoding/boomer).
+A screen zoomer for macOS. Your code is too small.
 
-Freezes the screen in a fullscreen overlay and lets you zoom and pan around it -
-handy for presentations, screencasts, and inspecting detail.
+Moomer makes it bigger. Code quality remains your problem.
 
-![demo](demo.gif)
+Useful for presentations, screencasts, and explaining a bug to six people who
+have all decided to sit as far from the screen as possible.
 
-## Install
+Inspired by [Boomer](https://github.com/tsoding/boomer).
+
+## It used to be Rust
+
+The first version was written in **Rust**. **v2 is a complete rewrite in Swift**.
+
+AppKit handles windows and input. Metal handles rendering. ScreenCaptureKit
+handles capture. Apple appears to have named the things after what they do.
+Dangerous precedent.
+
+The entire program was rewritten to make a rectangle larger.
+
+The Rust version is still in Git history. Deleting code and actually getting
+rid of it are apparently separate features.
+
+![Original Rust version — frozen-screen demo](demo.gif)
+
+*Rust-era footage. The documentation has not yet caught up with the rectangle.*
+
+## What's new in v2
+
+- **Live capture.** Videos and animations keep moving while you zoom.
+  Time has been implemented.
+- **Freeze / unfreeze.** Press Space. Keep your zoom and position.
+- **Multiple monitors.** Starts under the cursor and follows it between screens.
+  Tab tells it to stay put.
+- **Native refresh-rate target.** Or set an FPS cap yourself.
+- **Pinch, zoom, pan, inertia.** Even the camera has trouble letting go.
+
+Flashlight, mirroring, and copying the current view survived the rewrite.
+
+## Build and run
+
+Requires **macOS 14+** and a **Swift 6 toolchain** (Xcode 16+).
 
 ```sh
-brew tap Borfak/moomer
-brew trust borfak/moomer
-brew install moomer
+git clone https://github.com/Borfak/moomer.git
+cd moomer
+./scripts/build-app.sh
+open dist/Moomer.app
 ```
 
-Or build from source: `cargo build --release`.
-
-## Usage
-
-Run `moomer` to freeze the screen, then zoom/pan around it (see Controls); press
-<kbd>Esc</kbd> to quit. Needs **Screen Recording** permission the first time:
-*System Settings → Privacy & Security → Screen Recording*.
-
-### Global hotkey
-
-Bind a hotkey to launch moomer from anywhere using
-[skhd](https://github.com/koekeishiya/skhd):
+To start in live mode:
 
 ```sh
-# Cmd+Shift+Z launches moomer — change "cmd + shift - z" to any hotkey you like
-brew install koekeishiya/formulae/skhd
-mkdir -p ~/.config/skhd
-echo 'cmd + shift - z : moomer' >> ~/.config/skhd/skhdrc
-skhd --start-service
+open dist/Moomer.app --args --live
 ```
 
-Grant skhd **Accessibility** permission when prompted
-(*System Settings → Privacy & Security → Accessibility*).
+Copy `dist/Moomer.app` to `/Applications` if you want to launch it from Finder,
+Spotlight, or a hotkey. The build script signs the app locally; rebuilding can
+require granting Screen Recording permission again.
+
+Allow Moomer in **System Settings → Privacy & Security → Screen Recording**
+(or **Screen & System Audio Recording**), then relaunch. Moomer captures no audio.
+Monitor selection itself needs no Accessibility or Input Monitoring permission.
+
+Or run it from the terminal:
+
+```sh
+swift run -c release moomer
+swift run -c release moomer --live --fps auto
+```
+
+**Homebrew:** the tap currently ships the Rust version, `v0.1.0`. It needs an
+update for v2. Until then, use the build instructions above. A package manager
+cannot install code that has only been released emotionally.
+
+## What happens when you run it
+
+An overlay opens on the physical monitor under your cursor. Move to another
+monitor and it follows. Press **Tab** to pin it to the current monitor.
+
+The default is a frozen screenshot. `--live` starts with a moving desktop.
+**Space** switches between the two. Input goes to Moomer while the overlay is
+open; close it to interact with the applications underneath.
+
+**Esc** or **q** stops capture and exits the process.
+We have successfully implemented leaving.
+
+Your hotkey launcher stays around to launch it again.
 
 ## Controls
 
-| Control | Description |
+| Control | Action |
 | --- | --- |
-| Scroll / <kbd>=</kbd> <kbd>-</kbd> | Zoom in/out toward the cursor |
-| Left-drag | Pan (flick to coast) |
-| Arrows / <kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd> | Pan |
-| <kbd>f</kbd> | Toggle flashlight |
-| <kbd>Ctrl</kbd> + Scroll | Resize flashlight |
-| <kbd>m</kbd> | Mirror image |
-| <kbd>c</kbd> | Copy current view to clipboard |
-| <kbd>0</kbd> | Reset |
-| <kbd>Esc</kbd> / <kbd>q</kbd> | Quit |
+| Scroll / `+` / `-` | Zoom toward the cursor |
+| Trackpad pinch | Zoom |
+| Left-drag | Pan; release to coast |
+| Arrows / `h` `j` `k` `l` | Pan |
+| **Space** | Toggle live / freeze |
+| **Tab** | Toggle following the monitor under the cursor |
+| `f` | Toggle flashlight. For the line everyone is pretending to read. |
+| Ctrl + Scroll | Resize flashlight |
+| `m` | Mirror. The bug is on the other side now. |
+| `c` | Copy the current view, including effects |
+| `0` | Reset zoom and position |
+| Esc / `q` | Quit |
 
-## Tuning
+## Cmd + Shift + Z
 
-Constants at the top of `src/main.rs`: `MAX_SCALE`, `ZOOM_SENSITIVITY`,
-`SMOOTH_SPEED`, `SHADOW`.
+With [skhd](https://github.com/koekeishiya/skhd) installed, add this to
+`~/.config/skhd/skhdrc` after copying the app to `/Applications`:
+
+```sh
+cmd + shift - z : /usr/bin/open -a /Applications/Moomer.app --args --live --fps auto
+```
+
+Start skhd with `skhd --start-service`, or reload its configuration if it is
+already running. Allow skhd Accessibility access when prompted.
+Remove `--live` if you prefer to start with a frozen frame.
+
+## Options
+
+```sh
+moomer --live                  # Start live
+moomer --fps auto              # Target the monitor's refresh rate (default)
+moomer --fps 60                # Cap at 60 FPS
+moomer --no-follow-cursor      # Stay on the initial monitor
+moomer --list-displays         # List monitor IDs and refresh rates
+moomer --display ID            # Use one monitor and disable following
+moomer --help
+```
+
+`auto` targets the monitor's refresh rate. Actual FPS depends on capture load,
+rendering load, and macOS scheduling. Writing “144 FPS” here would be much easier
+than getting all three to agree.
+
+Quit the running overlay before launching with different arguments.
+
+## Development
+
+Build, tests, rendering details, and packaging:
+[DEVELOPMENT.md](DEVELOPMENT.md).
+
+Generated apps and build output stay out of Git. Put application archives in
+release assets. `target/` is still ignored. Some of us have moved on.
 
 ## License
 
-MIT
+MIT. The license is more permissive than macOS.

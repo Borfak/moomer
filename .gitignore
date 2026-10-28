@@ -1,1 +1,19 @@
+# Build output (including the original Rust build directory).
 /target
+/.build
+/.swiftpm
+/dist
+/build
+
+# Generated application bundles, installers, and diagnostics anywhere in the tree.
+*.app/
+*.dmg
+*.pkg
+*.dSYM/
+*.xcresult/
+*.trace/
+/Moomer*.zip
+/moomer*.zip
+
+# Finder metadata.
+.DS_Store
